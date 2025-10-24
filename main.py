@@ -550,44 +550,75 @@ def buscar_apenas_por_foto(
         logger.info(f"✨ Características: {analysis['distinctive_features']}")
     
     # 3. Estratégia de busca progressiva
-    # Construir endereço para geocodificação
-    if bairro:
-        local = f"{bairro}, {cidade}, {estado}, Brasil"
-        logger.info(f"\n🎯 Iniciando busca em {bairro}, {cidade}, {estado}")
-    elif regiao:
-        local = f"{regiao}, {cidade}, {estado}, Brasil"
-        logger.info(f"\n🎯 Iniciando busca em {regiao}, {cidade}, {estado}")
-    else:
-        local = f"{cidade}, {estado}, Brasil"
-        logger.info(f"\n🎯 Iniciando busca em {cidade}, {estado}")
-    
-    logger.info("   Estratégia: Busca ampla → Refinamento progressivo")
-    
-    # Obter coordenadas do centro da área
+    # Construir endereço para geocodificação com fallback
     import requests
     from config import GOOGLE_API_KEY
     
     geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
-    params = {
-        "address": local,
-        "key": GOOGLE_API_KEY
-    }
+    center_lat = None
+    center_lon = None
+    local_usado = None
     
-    response = requests.get(geocode_url, params=params)
-    geocode_data = response.json()
+    # Tentar múltiplas combinações
+    tentativas = []
     
-    if geocode_data["status"] != "OK":
+    if bairro:
+        tentativas = [
+            f"{bairro}, {cidade}, {estado}",
+            f"{bairro}, {cidade}",
+            f"{bairro}, São Paulo, SP",
+            f"{cidade}, {estado}"  # Fallback para cidade
+        ]
+        logger.info(f"\n🎯 Tentando localizar: {bairro}, {cidade}, {estado}")
+    elif regiao:
+        tentativas = [
+            f"{regiao}, {cidade}, {estado}",
+            f"{regiao}, {cidade}",
+            f"{cidade}, {estado}"
+        ]
+        logger.info(f"\n🎯 Tentando localizar: {regiao}, {cidade}, {estado}")
+    else:
+        tentativas = [
+            f"{cidade}, {estado}",
+            f"{cidade}, São Paulo"
+        ]
+        logger.info(f"\n🎯 Tentando localizar: {cidade}, {estado}")
+    
+    logger.info("   Estratégia: Busca ampla → Refinamento progressivo")
+    
+    # Tentar geocodificar com fallback
+    for tentativa in tentativas:
+        logger.info(f"   Tentando: {tentativa}")
+        
+        params = {
+            "address": tentativa,
+            "key": GOOGLE_API_KEY,
+            "region": "br"  # Priorizar Brasil
+        }
+        
+        response = requests.get(geocode_url, params=params)
+        geocode_data = response.json()
+        
+        if geocode_data["status"] == "OK":
+            location = geocode_data["results"][0]["geometry"]["location"]
+            center_lat = location["lat"]
+            center_lon = location["lng"]
+            local_usado = tentativa
+            logger.info(f"   ✅ Geocodificado com sucesso!")
+            break
+        else:
+            logger.info(f"   ❌ Falhou: {geocode_data.get('status')}")
+    
+    if center_lat is None or center_lon is None:
         return {
             "success": False,
-            "error": f"Não foi possível geocodificar: {local}",
-            "hint": "Verifique se o bairro/cidade está correto. Tente sem especificar o bairro."
+            "error": f"Não foi possível geocodificar nenhuma das tentativas",
+            "tentativas": tentativas,
+            "hint": "Tente especificar coordenadas manualmente ou use um bairro mais conhecido"
         }
     
-    location = geocode_data["results"][0]["geometry"]["location"]
-    center_lat = location["lat"]
-    center_lon = location["lng"]
-    
-    logger.info(f"📍 Centro da área: ({center_lat}, {center_lon})")
+    logger.info(f"\n📍 Centro da área: ({center_lat}, {center_lon})")
+    logger.info(f"   Local usado: {local_usado}")
     
     # 4. Busca em múltiplos raios (progressivo)
     # Ajustar raios baseado na especificidade
