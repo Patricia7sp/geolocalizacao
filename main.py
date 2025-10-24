@@ -348,3 +348,142 @@ if __name__ == "__main__":
         print(f"\n❌ FALHA: {resultado['error']}")
         if "hint" in resultado:
             print(f"💡 Dica: {resultado['hint']}")
+
+
+def buscar_apenas_por_foto(
+    foto_path: str | Path,
+    cidade: str = "São Paulo",
+    estado: str = "SP"
+) -> Dict:
+    """
+    🚨 MODO INVESTIGAÇÃO: Busca APENAS pela foto, sem coordenadas.
+    
+    Ideal para casos onde você só tem a imagem e precisa encontrar o local.
+    Usa estratégia de busca ampla + refinamento progressivo.
+    
+    Args:
+        foto_path: Caminho da foto
+        cidade: Cidade para buscar (padrão: São Paulo)
+        estado: Estado (padrão: SP)
+        
+    Returns:
+        Dict com resultado da busca
+        
+    Exemplo:
+        >>> resultado = buscar_apenas_por_foto("casa_desconhecida.jpg", cidade="São Paulo")
+        >>> print(resultado["endereco"])
+    """
+    logger.info("\n" + "="*70)
+    logger.info("🚨 MODO INVESTIGAÇÃO: Busca apenas por foto")
+    logger.info("="*70)
+    
+    geo = GeoLocalizador()
+    
+    # 1. Análise visual para extrair pistas
+    logger.info("\n🔍 Analisando foto para extrair pistas...")
+    query_analysis = geo.vision_agent.analyze_image(foto_path)
+    
+    if not query_analysis["success"]:
+        return {
+            "success": False,
+            "error": "Falha na análise da imagem",
+            "details": query_analysis
+        }
+    
+    analysis = query_analysis["analysis"]
+    
+    # 2. Extrair pistas da análise
+    pistas = []
+    
+    # Texto detectado (placas, números, nomes de rua)
+    if "text_detected" in analysis:
+        pistas.extend(analysis["text_detected"])
+        logger.info(f"📝 Texto detectado: {analysis['text_detected']}")
+    
+    # Pontos de referência mencionados
+    if "nearby_landmarks" in analysis:
+        pistas.extend(analysis["nearby_landmarks"])
+        logger.info(f"🏛️  Pontos de referência: {analysis['nearby_landmarks']}")
+    
+    # Características únicas
+    if "distinctive_features" in analysis:
+        logger.info(f"✨ Características: {analysis['distinctive_features']}")
+    
+    # 3. Estratégia de busca progressiva
+    logger.info(f"\n🎯 Iniciando busca em {cidade}, {estado}")
+    logger.info("   Estratégia: Busca ampla → Refinamento progressivo")
+    
+    # Obter coordenadas do centro da cidade
+    import requests
+    from config import GOOGLE_API_KEY
+    
+    geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
+    params = {
+        "address": f"{cidade}, {estado}, Brasil",
+        "key": GOOGLE_API_KEY
+    }
+    
+    response = requests.get(geocode_url, params=params)
+    geocode_data = response.json()
+    
+    if geocode_data["status"] != "OK":
+        return {
+            "success": False,
+            "error": f"Não foi possível geocodificar {cidade}, {estado}"
+        }
+    
+    location = geocode_data["results"][0]["geometry"]["location"]
+    center_lat = location["lat"]
+    center_lon = location["lng"]
+    
+    logger.info(f"📍 Centro da cidade: ({center_lat}, {center_lon})")
+    
+    # 4. Busca em múltiplos raios (progressivo)
+    raios = [5000, 10000, 20000]  # 5km, 10km, 20km
+    
+    melhor_resultado = None
+    melhor_confianca = 0
+    
+    for radius_m in raios:
+        logger.info(f"\n🔄 Tentativa com raio de {radius_m}m...")
+        
+        try:
+            resultado = geo.localizar_imovel(
+                foto_path=foto_path,
+                cidade=cidade,
+                center_lat=center_lat,
+                center_lon=center_lon,
+                radius_m=radius_m
+            )
+            
+            if resultado["success"]:
+                confianca = resultado["confianca"]
+                logger.info(f"✅ Encontrado! Confiança: {confianca:.1%}")
+                
+                if confianca > melhor_confianca:
+                    melhor_resultado = resultado
+                    melhor_confianca = confianca
+                
+                # Se confiança alta, parar
+                if confianca >= 0.85:
+                    logger.info("🎉 Alta confiança! Parando busca.")
+                    break
+            else:
+                logger.info(f"⚠️  Não encontrado neste raio")
+                
+        except Exception as e:
+            logger.error(f"❌ Erro na busca: {e}")
+            continue
+    
+    if melhor_resultado:
+        logger.info("\n" + "="*70)
+        logger.info("🎉 LOCALIZAÇÃO ENCONTRADA!")
+        logger.info("="*70)
+        return melhor_resultado
+    else:
+        return {
+            "success": False,
+            "error": "Não foi possível localizar o imóvel",
+            "hint": "Tente: 1) Foto de melhor qualidade, 2) Especificar bairro, 3) Verificar se há Street View na região",
+            "pistas_encontradas": pistas
+        }
