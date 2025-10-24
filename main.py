@@ -353,7 +353,9 @@ if __name__ == "__main__":
 def buscar_com_multiplas_fotos(
     fotos: list[str | Path],
     cidade: str = "São Paulo",
-    estado: str = "SP"
+    estado: str = "SP",
+    bairro: str = None,
+    regiao: str = None
 ) -> Dict:
     """
     🎯 ANÁLISE COMBINADA: Busca usando MÚLTIPLAS fotos externas.
@@ -365,6 +367,8 @@ def buscar_com_multiplas_fotos(
         fotos: Lista de caminhos das fotos (2-5 fotos recomendado)
         cidade: Cidade para buscar (padrão: São Paulo)
         estado: Estado (padrão: SP)
+        bairro: Bairro específico (ex: "Santo Amaro") - RECOMENDADO
+        regiao: Região da cidade (ex: "Zona Sul") - opcional
         
     Returns:
         Dict com resultado da busca
@@ -372,7 +376,8 @@ def buscar_com_multiplas_fotos(
     Exemplo:
         >>> resultado = buscar_com_multiplas_fotos(
         ...     fotos=["fachada_frontal.jpg", "fachada_lateral.jpg"],
-        ...     cidade="São Paulo"
+        ...     cidade="São Paulo",
+        ...     bairro="Santo Amaro"
         ... )
         >>> print(resultado["endereco"])
     """
@@ -471,14 +476,18 @@ def buscar_com_multiplas_fotos(
     return buscar_apenas_por_foto(
         foto_path=melhor_foto,
         cidade=cidade,
-        estado=estado
+        estado=estado,
+        bairro=bairro,
+        regiao=regiao
     )
 
 
 def buscar_apenas_por_foto(
     foto_path: str | Path,
     cidade: str = "São Paulo",
-    estado: str = "SP"
+    estado: str = "SP",
+    bairro: str = None,
+    regiao: str = None
 ) -> Dict:
     """
     🚨 MODO INVESTIGAÇÃO: Busca APENAS pela foto, sem coordenadas.
@@ -490,12 +499,18 @@ def buscar_apenas_por_foto(
         foto_path: Caminho da foto
         cidade: Cidade para buscar (padrão: São Paulo)
         estado: Estado (padrão: SP)
+        bairro: Bairro específico (ex: "Santo Amaro") - RECOMENDADO
+        regiao: Região da cidade (ex: "Zona Sul") - opcional
         
     Returns:
         Dict com resultado da busca
         
     Exemplo:
-        >>> resultado = buscar_apenas_por_foto("casa_desconhecida.jpg", cidade="São Paulo")
+        >>> resultado = buscar_apenas_por_foto(
+        ...     "casa_desconhecida.jpg",
+        ...     cidade="São Paulo",
+        ...     bairro="Santo Amaro"
+        ... )
         >>> print(resultado["endereco"])
     """
     logger.info("\n" + "="*70)
@@ -535,16 +550,26 @@ def buscar_apenas_por_foto(
         logger.info(f"✨ Características: {analysis['distinctive_features']}")
     
     # 3. Estratégia de busca progressiva
-    logger.info(f"\n🎯 Iniciando busca em {cidade}, {estado}")
+    # Construir endereço para geocodificação
+    if bairro:
+        local = f"{bairro}, {cidade}, {estado}, Brasil"
+        logger.info(f"\n🎯 Iniciando busca em {bairro}, {cidade}, {estado}")
+    elif regiao:
+        local = f"{regiao}, {cidade}, {estado}, Brasil"
+        logger.info(f"\n🎯 Iniciando busca em {regiao}, {cidade}, {estado}")
+    else:
+        local = f"{cidade}, {estado}, Brasil"
+        logger.info(f"\n🎯 Iniciando busca em {cidade}, {estado}")
+    
     logger.info("   Estratégia: Busca ampla → Refinamento progressivo")
     
-    # Obter coordenadas do centro da cidade
+    # Obter coordenadas do centro da área
     import requests
     from config import GOOGLE_API_KEY
     
     geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
-        "address": f"{cidade}, {estado}, Brasil",
+        "address": local,
         "key": GOOGLE_API_KEY
     }
     
@@ -554,17 +579,27 @@ def buscar_apenas_por_foto(
     if geocode_data["status"] != "OK":
         return {
             "success": False,
-            "error": f"Não foi possível geocodificar {cidade}, {estado}"
+            "error": f"Não foi possível geocodificar: {local}",
+            "hint": "Verifique se o bairro/cidade está correto. Tente sem especificar o bairro."
         }
     
     location = geocode_data["results"][0]["geometry"]["location"]
     center_lat = location["lat"]
     center_lon = location["lng"]
     
-    logger.info(f"📍 Centro da cidade: ({center_lat}, {center_lon})")
+    logger.info(f"📍 Centro da área: ({center_lat}, {center_lon})")
     
     # 4. Busca em múltiplos raios (progressivo)
-    raios = [5000, 10000, 20000]  # 5km, 10km, 20km
+    # Ajustar raios baseado na especificidade
+    if bairro:
+        raios = [2000, 3000, 5000]  # Bairro específico: raios menores
+        logger.info("   Raios de busca: 2km, 3km, 5km (bairro específico)")
+    elif regiao:
+        raios = [3000, 5000, 8000]  # Região: raios médios
+        logger.info("   Raios de busca: 3km, 5km, 8km (região)")
+    else:
+        raios = [5000, 10000, 20000]  # Cidade inteira: raios grandes
+        logger.info("   Raios de busca: 5km, 10km, 20km (cidade)")
     
     melhor_resultado = None
     melhor_confianca = 0
