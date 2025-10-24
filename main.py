@@ -350,6 +350,131 @@ if __name__ == "__main__":
             print(f"💡 Dica: {resultado['hint']}")
 
 
+def buscar_com_multiplas_fotos(
+    fotos: list[str | Path],
+    cidade: str = "São Paulo",
+    estado: str = "SP"
+) -> Dict:
+    """
+    🎯 ANÁLISE COMBINADA: Busca usando MÚLTIPLAS fotos externas.
+    
+    Analisa todas as fotos, combina as informações e usa a melhor para matching.
+    Aumenta precisão e confiança do resultado.
+    
+    Args:
+        fotos: Lista de caminhos das fotos (2-5 fotos recomendado)
+        cidade: Cidade para buscar (padrão: São Paulo)
+        estado: Estado (padrão: SP)
+        
+    Returns:
+        Dict com resultado da busca
+        
+    Exemplo:
+        >>> resultado = buscar_com_multiplas_fotos(
+        ...     fotos=["fachada_frontal.jpg", "fachada_lateral.jpg"],
+        ...     cidade="São Paulo"
+        ... )
+        >>> print(resultado["endereco"])
+    """
+    logger.info("\n" + "="*70)
+    logger.info("🎯 ANÁLISE COMBINADA: Múltiplas fotos externas")
+    logger.info(f"   Total de fotos: {len(fotos)}")
+    logger.info("="*70)
+    
+    if len(fotos) < 1:
+        return {
+            "success": False,
+            "error": "É necessário pelo menos 1 foto"
+        }
+    
+    if len(fotos) > 5:
+        logger.warning(f"⚠️  Muitas fotos ({len(fotos)}). Usando apenas as 5 primeiras.")
+        fotos = fotos[:5]
+    
+    geo = GeoLocalizador()
+    
+    # 1. Analisar TODAS as fotos
+    logger.info("\n🔍 ETAPA 1: Analisando todas as fotos...")
+    analises = []
+    pistas_combinadas = []
+    
+    for i, foto_path in enumerate(fotos, 1):
+        foto_path = Path(foto_path)
+        if not foto_path.exists():
+            logger.warning(f"⚠️  Foto {i} não encontrada: {foto_path}")
+            continue
+            
+        logger.info(f"\n   📸 Foto {i}/{len(fotos)}: {foto_path.name}")
+        
+        query_analysis = geo.vision_agent.analyze_image(foto_path)
+        
+        if query_analysis["success"]:
+            analises.append({
+                "foto": foto_path,
+                "analysis": query_analysis["analysis"],
+                "index": i
+            })
+            
+            # Extrair pistas
+            analysis = query_analysis["analysis"]
+            if "text_detected" in analysis:
+                pistas_combinadas.extend(analysis["text_detected"])
+            if "nearby_landmarks" in analysis:
+                pistas_combinadas.extend(analysis["nearby_landmarks"])
+                
+            logger.info(f"      ✅ Análise concluída")
+        else:
+            logger.warning(f"      ⚠️  Falha na análise")
+    
+    if not analises:
+        return {
+            "success": False,
+            "error": "Nenhuma foto pôde ser analisada com sucesso"
+        }
+    
+    logger.info(f"\n✅ {len(analises)} foto(s) analisada(s) com sucesso")
+    logger.info(f"📝 Pistas combinadas encontradas: {len(set(pistas_combinadas))}")
+    
+    # 2. Selecionar melhor foto para matching
+    logger.info("\n🎯 ETAPA 2: Selecionando melhor foto para matching...")
+    
+    # Critérios: mais características distintivas + melhor qualidade
+    melhor_foto = None
+    melhor_score = 0
+    
+    for item in analises:
+        analysis = item["analysis"]
+        score = 0
+        
+        # Pontuação baseada em características
+        if "distinctive_features" in analysis:
+            score += len(analysis["distinctive_features"]) * 2
+        if "text_detected" in analysis:
+            score += len(analysis["text_detected"]) * 3
+        if "nearby_landmarks" in analysis:
+            score += len(analysis["nearby_landmarks"]) * 2
+        
+        logger.info(f"   Foto {item['index']}: score = {score}")
+        
+        if score > melhor_score:
+            melhor_score = score
+            melhor_foto = item["foto"]
+    
+    if not melhor_foto:
+        melhor_foto = analises[0]["foto"]
+    
+    logger.info(f"\n✅ Melhor foto selecionada: {melhor_foto.name}")
+    
+    # 3. Buscar usando a melhor foto
+    logger.info("\n🔍 ETAPA 3: Executando busca com foto selecionada...")
+    
+    return buscar_apenas_por_foto(
+        foto_path=melhor_foto,
+        cidade=cidade,
+        estado=estado
+    )
+
+
 def buscar_apenas_por_foto(
     foto_path: str | Path,
     cidade: str = "São Paulo",
