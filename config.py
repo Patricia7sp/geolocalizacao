@@ -4,9 +4,13 @@ Configuração do Sistema de Geolocalização de Imóveis
 
 import os
 from pathlib import Path
-from dotenv import load_dotenv
 
-load_dotenv()
+# Tentar carregar do .env (local) ou do Colab Secrets
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
 # Diretórios
 BASE_DIR = Path(__file__).parent
@@ -18,9 +22,27 @@ DATA_DIR = BASE_DIR / "data"
 for d in [OUTPUT_DIR, CACHE_DIR, DATA_DIR]:
     d.mkdir(exist_ok=True, parents=True)
 
-# APIs (configure via .env)
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
+# APIs - Tentar múltiplas fontes
+def get_api_key(key_name):
+    """Obtém chave de API de múltiplas fontes."""
+    # 1. Variável de ambiente
+    key = os.getenv(key_name, "")
+    if key:
+        return key
+    
+    # 2. Colab Secrets (se disponível)
+    try:
+        from google.colab import userdata
+        key = userdata.get(key_name)
+        if key:
+            return key
+    except (ImportError, Exception):
+        pass
+    
+    return ""
+
+GOOGLE_API_KEY = get_api_key("GOOGLE_API_KEY")
+OPENAI_API_KEY = get_api_key("OPENAI_API_KEY")
 
 # Configurações de busca
 SEARCH_CONFIG = {
