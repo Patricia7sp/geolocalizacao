@@ -15,7 +15,7 @@ O código agora suporta **Colab Secrets** automaticamente! Não precisa mais cri
 3. Adicione as duas chaves:
 
 **Secret 1:**
-- **Name:** `GOOGLE_API_KEY`
+- **Name:** `GOOGLE_KEY`
 - **Value:** `sua_chave_google_aqui`
 - ✅ Marque "Notebook access"
 
@@ -113,10 +113,10 @@ try:
     from google.colab import userdata
     
     try:
-        google_key = userdata.get('GOOGLE_API_KEY')
-        print("✅ GOOGLE_API_KEY encontrada nos Secrets")
+        google_key = userdata.get('GOOGLE_KEY')
+        print("✅ GOOGLE_KEY encontrada nos Secrets")
     except:
-        print("❌ GOOGLE_API_KEY NÃO encontrada nos Secrets")
+        print("❌ GOOGLE_KEY NÃO encontrada nos Secrets")
     
     try:
         openai_key = userdata.get('OPENAI_API_KEY')
@@ -128,10 +128,10 @@ except ImportError:
     print("⚠️  Não está no Colab")
     
 # Verificar variáveis de ambiente
-if os.getenv('GOOGLE_API_KEY'):
-    print("✅ GOOGLE_API_KEY em variável de ambiente")
+if os.getenv('GOOGLE_KEY'):
+    print("✅ GOOGLE_KEY em variável de ambiente")
 else:
-    print("❌ GOOGLE_API_KEY não está em variável de ambiente")
+    print("❌ GOOGLE_KEY não está em variável de ambiente")
     
 if os.getenv('OPENAI_API_KEY'):
     print("✅ OPENAI_API_KEY em variável de ambiente")
@@ -149,7 +149,7 @@ Se você já tinha configurado as chaves com `os.environ`, pode continuar usando
 import os
 from getpass import getpass
 
-os.environ["GOOGLE_API_KEY"] = getpass("Google API Key: ")
+os.environ["GOOGLE_KEY"] = getpass("Google API Key: ")
 os.environ["OPENAI_API_KEY"] = getpass("OpenAI API Key: ")
 ```
 
