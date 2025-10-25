@@ -23,25 +23,32 @@ for d in [OUTPUT_DIR, CACHE_DIR, DATA_DIR]:
     d.mkdir(exist_ok=True, parents=True)
 
 # APIs - Tentar múltiplas fontes
-def get_api_key(key_name):
+def get_api_key(key_name, alternative_names=None):
     """Obtém chave de API de múltiplas fontes."""
-    # 1. Variável de ambiente
-    key = os.getenv(key_name, "")
-    if key:
-        return key
+    # Lista de nomes a tentar (incluindo alternativas)
+    names_to_try = [key_name]
+    if alternative_names:
+        names_to_try.extend(alternative_names)
     
-    # 2. Colab Secrets (se disponível)
-    try:
-        from google.colab import userdata
-        key = userdata.get(key_name)
+    for name in names_to_try:
+        # 1. Variável de ambiente
+        key = os.getenv(name, "")
         if key:
             return key
-    except (ImportError, Exception):
-        pass
+        
+        # 2. Colab Secrets (se disponível)
+        try:
+            from google.colab import userdata
+            key = userdata.get(name)
+            if key:
+                return key
+        except (ImportError, Exception):
+            pass
     
     return ""
 
-GOOGLE_API_KEY = get_api_key("GOOGLE_API_KEY")
+# Aceita GOOGLE_API_KEY ou GOOGLE_KEY (compatibilidade)
+GOOGLE_API_KEY = get_api_key("GOOGLE_API_KEY", alternative_names=["GOOGLE_KEY"])
 OPENAI_API_KEY = get_api_key("OPENAI_API_KEY")
 
 # Configurações de busca
