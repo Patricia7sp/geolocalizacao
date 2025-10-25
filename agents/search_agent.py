@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from tqdm import tqdm
 
-from config import GOOGLE_API_KEY, SEARCH_CONFIG, CACHE_DIR
+from config import GOOGLE_KEY, SEARCH_CONFIG, CACHE_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -28,10 +28,10 @@ class SearchAgent:
     """
     
     def __init__(self):
-        if not GOOGLE_API_KEY:
-            raise ValueError("GOOGLE_API_KEY não configurada")
+        if not GOOGLE_KEY:
+            raise ValueError("GOOGLE_KEY não configurada")
         
-        self.api_key = GOOGLE_API_KEY
+        self.api_key = GOOGLE_KEY
         self.cache_dir = CACHE_DIR / "search"
         self.cache_dir.mkdir(exist_ok=True, parents=True)
         

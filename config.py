@@ -47,8 +47,8 @@ def get_api_key(key_name, alternative_names=None):
     
     return ""
 
-# Aceita GOOGLE_API_KEY ou GOOGLE_KEY (compatibilidade)
-GOOGLE_API_KEY = get_api_key("GOOGLE_API_KEY", alternative_names=["GOOGLE_KEY"])
+# Chaves de API
+GOOGLE_KEY = get_api_key("GOOGLE_KEY")
 OPENAI_API_KEY = get_api_key("OPENAI_API_KEY")
 
 # Configurações de busca

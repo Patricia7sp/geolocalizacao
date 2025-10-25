@@ -552,7 +552,7 @@ def buscar_apenas_por_foto(
     # 3. Estratégia de busca progressiva
     # Construir endereço para geocodificação com fallback
     import requests
-    from config import GOOGLE_API_KEY
+    from config import GOOGLE_KEY
     
     geocode_url = "https://maps.googleapis.com/maps/api/geocode/json"
     center_lat = None
@@ -592,7 +592,7 @@ def buscar_apenas_por_foto(
         
         params = {
             "address": tentativa,
-            "key": GOOGLE_API_KEY,
+            "key": GOOGLE_KEY,
             "region": "br"  # Priorizar Brasil
         }
         
