@@ -141,6 +141,19 @@ class ValidationAgent:
             
             validation = json.loads(response_text.strip())
             
+            # Validar estrutura do JSON
+            if "is_match" not in validation:
+                logger.warning(f"JSON sem 'is_match': {validation}")
+                validation["is_match"] = False
+            if "confidence" not in validation:
+                validation["confidence"] = 0.0
+            if "reasoning" not in validation:
+                validation["reasoning"] = "Resposta incompleta do LLM"
+            if "matching_elements" not in validation:
+                validation["matching_elements"] = []
+            if "discrepancies" not in validation:
+                validation["discrepancies"] = []
+            
             return validation
             
         except json.JSONDecodeError as e:
