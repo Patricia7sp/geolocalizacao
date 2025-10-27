@@ -623,14 +623,14 @@ def buscar_apenas_por_foto(
     # 4. Busca em múltiplos raios (progressivo)
     # Ajustar raios baseado na especificidade
     if bairro:
-        raios = [2000, 3000, 5000]  # Bairro específico: raios menores
-        logger.info("   Raios de busca: 2km, 3km, 5km (bairro específico)")
+        raios = [3000, 5000, 8000]  # ⬆️ AUMENTADO: Bairro específico
+        logger.info("   Raios de busca: 3km, 5km, 8km (bairro específico)")
     elif regiao:
-        raios = [3000, 5000, 8000]  # Região: raios médios
-        logger.info("   Raios de busca: 3km, 5km, 8km (região)")
+        raios = [5000, 8000, 12000]  # ⬆️ AUMENTADO: Região
+        logger.info("   Raios de busca: 5km, 8km, 12km (região)")
     else:
-        raios = [5000, 10000, 20000]  # Cidade inteira: raios grandes
-        logger.info("   Raios de busca: 5km, 10km, 20km (cidade)")
+        raios = [8000, 15000, 25000]  # ⬆️ AUMENTADO: Cidade inteira
+        logger.info("   Raios de busca: 8km, 15km, 25km (cidade)")
     
     melhor_resultado = None
     melhor_confianca = 0

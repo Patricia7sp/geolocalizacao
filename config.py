@@ -59,20 +59,20 @@ SEARCH_CONFIG = {
     
     # Estratégia de busca
     "search_strategy": "funnel",  # funnel (macro→micro) ou grid (grade)
-    "initial_radius_m": 2000,     # raio inicial
-    "grid_spacing_m": 50,         # espaçamento da grade
+    "initial_radius_m": 3000,     # ⬆️ AUMENTADO: raio inicial
+    "grid_spacing_m": 40,         # ⬇️ REDUZIDO: mais pontos na grade
     "refinement_radius_m": 200,   # raio de refinamento após match
     "refinement_spacing_m": 20,   # espaçamento no refinamento
     
     # Street View
-    "sv_min_year": 2024,
+    "sv_min_year": 2020,          # ⬇️ REDUZIDO: aceitar fotos mais antigas
     "sv_size": "640x640",
     "sv_fov": 90,
     "sv_headings": [0, 45, 90, 135, 180, 225, 270, 315],
     
     # Limites
-    "max_sv_downloads": 500,
-    "max_places_results": 100,
+    "max_sv_downloads": 800,      # ⬆️ AUMENTADO: mais downloads
+    "max_places_results": 150,    # ⬆️ AUMENTADO: mais resultados
     "request_delay": 0.1,  # delay entre requisições (segundos)
 }
 
@@ -81,13 +81,13 @@ ML_CONFIG = {
     # OpenCLIP
     "clip_model": "ViT-bigG-14",
     "clip_pretrained": "laion2b_s39b_b160k",
-    "clip_threshold": 0.70,  # threshold mínimo para considerar match
+    "clip_threshold": 0.50,  # ⬇️ REDUZIDO: threshold mínimo para considerar match
     
     # SIFT (geometria)
     "sift_features": 4000,
     "sift_match_ratio": 0.75,
-    "min_inliers": 20,
-    "geom_threshold": 0.60,
+    "min_inliers": 15,  # ⬇️ REDUZIDO: mínimo de inliers
+    "geom_threshold": 0.45,  # ⬇️ REDUZIDO: threshold geométrico
     
     # Score combinado (soma = 1.0)
     "clip_weight": 0.5,
@@ -95,8 +95,8 @@ ML_CONFIG = {
     "context_weight": 0.2,
     
     # Validação final
-    "min_confidence": 0.85,  # confiança mínima para retornar resultado
-    "top_k_candidates": 20,  # quantos candidatos levar para validação LLM
+    "min_confidence": 0.70,  # ⬇️ REDUZIDO: confiança mínima para retornar resultado
+    "top_k_candidates": 30,  # ⬆️ AUMENTADO: mais candidatos para validação LLM
 }
 
 # Configurações do LLM
